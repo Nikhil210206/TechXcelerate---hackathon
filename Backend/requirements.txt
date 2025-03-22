@@ -1,0 +1,7 @@
+pyaudio
+librosa
+soundfile
+speechrecognition
+openCV
+mediapipe
+numpy
