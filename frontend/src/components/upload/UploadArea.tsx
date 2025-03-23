@@ -1,46 +1,52 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import UploadCard from './UploadCard';
+import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker source
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const UploadArea = () => {
-  const [isDragging, setIsDragging] = useState(false);
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [analysis, setAnalysis] = useState<{ score: number; feedback: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzed, setAnalyzed] = useState(false);
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState<string[]>([]);
+  const [summary, setSummary] = useState("");
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false);
+  const [extractingText, setExtractingText] = useState(false);
   
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-  
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-  
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+  const handleFileUpload = async (uploadedFile: File | null) => {
+    if (uploadedFile) {
+      try {
+        setFile(uploadedFile);
+        setAnalyzed(false);
+        setScore(0);
+        setFeedback([]);
+        setSummary("");
+        
+        if (uploadedFile.type === 'application/pdf') {
+          await extractTextFromFile(uploadedFile);
+        } else {
+          simulateUpload(uploadedFile);
+        }
+      } catch (error) {
+        console.error('Error handling file upload:', error);
+        toast.error('Failed to process the file. Please try again.');
+        resetUpload();
+      }
+    } else {
+      resetUpload();
     }
-  };
-  
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
-    }
-  };
-  
-  const handleFile = (file: File) => {
-    if (file.type !== 'application/pdf' && !file.name.endsWith('.docx')) {
-      toast.error('Please upload a PDF or DOCX file');
-      return;
-    }
-    
-    setFile(file);
-    simulateUpload(file);
   };
   
   const simulateUpload = (file: File) => {
@@ -62,77 +68,156 @@ const UploadArea = () => {
     }, 100);
   };
   
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-  
   const resetUpload = () => {
     setFile(null);
     setProgress(0);
     setAnalysis(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    setAnalyzed(false);
+    setScore(0);
+    setFeedback([]);
+    setSummary("");
+    setShowSummaryDialog(false);
+    setExtractingText(false);
+    setAnalyzing(false);
+  };
+
+  const extractTextFromFile = async (file: File) => {
+    setExtractingText(true);
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Load the PDF document with error handling
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      
+      if (!pdf || pdf.numPages === 0) {
+        throw new Error('Invalid PDF file');
+      }
+      
+      let extractedText = '';
+      
+      // Show progress toast
+      const loadingToast = toast.loading('Extracting text from PDF...', {
+        duration: Infinity,
+      });
+      
+      // Extract text from each page with progress tracking
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const textItems = textContent.items.map((item: any) => item.str);
+        extractedText += textItems.join(' ') + '\n\n';
+        
+        // Update progress
+        const progress = Math.round((i / pdf.numPages) * 100);
+        toast.loading(`Extracting text from PDF... ${progress}%`, {
+          id: loadingToast,
+          duration: Infinity,
+        });
+      }
+      
+      // Update state and show success
+      setSummary(extractedText);
+      setShowSummaryDialog(true);
+      toast.dismiss(loadingToast);
+      toast.success('Text extracted successfully', {
+        description: "We've extracted the text from your resume.",
+      });
+      
+    } catch (error) {
+      console.error('Error extracting text from PDF:', error);
+      toast.dismiss();
+      toast.error('Failed to extract text', {
+        description: "There was an error processing your PDF. Please try again with another file.",
+      });
+      resetUpload();
+    } finally {
+      setExtractingText(false);
     }
+  };
+
+  const analyzeResume = () => {
+    if (!file || !summary) {
+      toast.error('No content to analyze');
+      return;
+    }
+    
+    setAnalyzing(true);
+    toast.loading('Analyzing your resume...', {
+      duration: Infinity,
+    });
+    
+    // Simulate analysis
+    setTimeout(() => {
+      try {
+        const summaryLength = summary.length;
+        let mockScore = 65;
+        
+        // Basic content analysis
+        if (summaryLength > 1000) mockScore += 10;
+        if (summary.toLowerCase().includes('experience')) mockScore += 5;
+        if (summary.toLowerCase().includes('education')) mockScore += 5;
+        if (summary.toLowerCase().includes('skills')) mockScore += 5;
+        if (summary.toLowerCase().includes('project')) mockScore += 5;
+        if (summary.toLowerCase().includes('achievement')) mockScore += 5;
+
+        // Generate feedback based on content
+        const mockFeedback = [
+          'Add more details about your technical skills and proficiency levels',
+          'Quantify your achievements with specific metrics and numbers',
+          'Include relevant keywords from the job descriptions you\'re targeting',
+        ];
+
+        // Add conditional feedback
+        if (!summary.toLowerCase().includes('education')) {
+          mockFeedback.push('Add your educational background and qualifications');
+        }
+        if (!summary.toLowerCase().includes('experience')) {
+          mockFeedback.push('Include your work experience with detailed responsibilities');
+        }
+        if (summaryLength < 1000) {
+          mockFeedback.push('Expand your resume content to provide more detailed information');
+        }
+
+        setScore(mockScore);
+        setFeedback(mockFeedback);
+        setAnalysis({
+          score: mockScore,
+          feedback: `Your resume is ${mockScore}% complete. ${mockFeedback[0]}`
+        });
+        setAnalyzing(false);
+        setAnalyzed(true);
+        
+        toast.dismiss();
+        toast.success('Analysis complete', {
+          description: `Your resume scored ${mockScore}/100. Check out our recommendations.`,
+        });
+      } catch (error) {
+        console.error('Error analyzing resume:', error);
+        toast.dismiss();
+        toast.error('Failed to analyze resume', {
+          description: 'An error occurred during analysis. Please try again.',
+        });
+        setAnalyzing(false);
+      }
+    }, 2000);
+  };
+
+  const handleContinue = () => {
+    navigate('/verify');
   };
   
   return (
     <div className="max-w-2xl mx-auto">
       {!file ? (
-        <div 
-          className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300 ${
-            isDragging 
-              ? 'border-primary bg-primary/5' 
-              : 'border-muted hover:border-primary/50 hover:bg-muted/30'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={triggerFileInput}
-        >
-          <input 
-            type="file" 
-            className="hidden" 
-            onChange={handleFileInput} 
-            accept=".pdf,.docx" 
-            ref={fileInputRef}
-          />
-          
-          <div className="flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary animate-float">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">Upload your resume</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto">
-                Drag and drop your resume file here, or click to browse
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Supports PDF, DOCX (Max 5MB)
-              </p>
-            </div>
-            
-            <button className="btn-primary mt-4">
-              Select File
-            </button>
-          </div>
-        </div>
+        <UploadCard
+          onFileUpload={handleFileUpload}
+          maxSize={5}
+          accept="application/pdf,.doc,.docx"
+          title="Upload your resume"
+          description="Drag and drop your resume file here, or click to browse"
+        />
       ) : (
         <div className="glass-card p-8 rounded-xl">
           {progress < 100 ? (
@@ -286,60 +371,26 @@ const UploadArea = () => {
                     <div className="pt-4">
                       <h5 className="text-sm font-medium mb-3">Recommended Improvements:</h5>
                       <ul className="space-y-2">
-                        <li className="flex items-start gap-2">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="18" 
-                            height="18" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                            className="text-primary mt-0.5"
-                          >
-                            <polyline points="9 11 12 14 22 4"></polyline>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                          </svg>
-                          <span>Add more details about your technical skills</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="18" 
-                            height="18" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                            className="text-primary mt-0.5"
-                          >
-                            <polyline points="9 11 12 14 22 4"></polyline>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                          </svg>
-                          <span>Quantify your achievements with metrics</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="18" 
-                            height="18" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                            className="text-primary mt-0.5"
-                          >
-                            <polyline points="9 11 12 14 22 4"></polyline>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                          </svg>
-                          <span>Include keywords relevant to your target role</span>
-                        </li>
+                        {feedback.map((item, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="18" 
+                              height="18" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                              className="text-primary mt-0.5"
+                            >
+                              <polyline points="9 11 12 14 22 4"></polyline>
+                              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                            <span>{item}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
@@ -347,9 +398,9 @@ const UploadArea = () => {
               )}
               
               <div className="flex justify-center pt-4">
-                <button 
-                  className="btn-primary"
-                  onClick={() => window.location.href = '/verify'}
+                <Button 
+                  className="flex items-center gap-2"
+                  onClick={handleContinue}
                 >
                   Continue to Skill Verification
                   <svg 
@@ -361,18 +412,63 @@ const UploadArea = () => {
                     stroke="currentColor" 
                     strokeWidth="2" 
                     strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className="ml-2"
+                    strokeLinejoin="round"
                   >
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       )}
+      {extractingText && (
+        <div className="space-y-4 p-6 bg-card rounded-xl border border-border">
+          <h3 className="text-lg font-medium">Extracting resume content...</h3>
+          <p className="text-sm text-muted-foreground">
+            We're reading your resume to provide personalized analysis.
+          </p>
+          <Progress value={40} className="mt-4" />
+        </div>
+      )}
+
+      <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resume Summary</DialogTitle>
+            <DialogDescription>
+              We've extracted the following content from your resume:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <Textarea 
+              value={summary} 
+              onChange={(e) => setSummary(e.target.value)}
+              className="min-h-[300px] font-mono text-sm"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowSummaryDialog(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSummaryDialog(false);
+                analyzeResume();
+                toast.success("Summary saved", {
+                  description: "Your resume summary has been updated.",
+                });
+              }}
+            >
+              Analyze Resume
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

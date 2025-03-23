@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import VerifyPage from "./pages/VerifyPage";
 import BackgroundPage from "./pages/BackgroundPage";
 import ReportPage from "./pages/ReportPage";
 import NotFound from "./pages/NotFound";
+import Layout from "@/components/layout/Layout";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +22,7 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="bottom-right" />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,17 +14,8 @@ const Navbar = () => {
       }
     };
 
-    const handleLocationChange = () => {
-      setCurrentPath(window.location.pathname);
-    };
-
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('popstate', handleLocationChange);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('popstate', handleLocationChange);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
 
   return (
@@ -33,7 +23,7 @@ const Navbar = () => {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
         scrolled 
-          ? "bg-white/80 backdrop-blur-md shadow-sm" 
+          ? "bg-background/80 backdrop-blur-md shadow-sm" 
           : "bg-transparent"
       )}
     >
@@ -46,11 +36,11 @@ const Navbar = () => {
         </Link>
         
         <div className="hidden md:flex items-center space-x-8">
-          <NavLink to="/" currentPath={currentPath}>Home</NavLink>
-          <NavLink to="/upload" currentPath={currentPath}>Upload</NavLink>
-          <NavLink to="/verify" currentPath={currentPath}>Verify</NavLink>
-          <NavLink to="/background" currentPath={currentPath}>Background</NavLink>
-          <NavLink to="/report" currentPath={currentPath}>Report</NavLink>
+          <NavLink to="/" currentPath={location.pathname}>Home</NavLink>
+          <NavLink to="/upload" currentPath={location.pathname}>Upload</NavLink>
+          <NavLink to="/verify" currentPath={location.pathname}>Verify</NavLink>
+          <NavLink to="/background" currentPath={location.pathname}>Background</NavLink>
+          <NavLink to="/report" currentPath={location.pathname}>Report</NavLink>
         </div>
         
         <div className="md:hidden">
@@ -76,8 +66,12 @@ const NavLink = ({ to, children, currentPath }: NavLinkProps) => {
     <Link 
       to={to} 
       className={cn(
-        "navbar-link font-medium text-sm transition-colors",
-        isActive ? "text-primary after:w-full" : "text-foreground/80"
+        "relative font-medium text-sm transition-colors",
+        "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-primary",
+        "after:transition-all after:duration-300",
+        isActive 
+          ? "text-primary after:w-full" 
+          : "text-foreground/80 after:w-0 hover:text-foreground hover:after:w-full"
       )}
     >
       {children}
