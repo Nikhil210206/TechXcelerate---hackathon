@@ -13,6 +13,7 @@ import UploadPage from "./pages/UploadPage";
 import VerifyPage from "./pages/VerifyPage";
 import BackgroundPage from "./pages/BackgroundPage";
 import ReportPage from "./pages/ReportPage";
+import AssessmentPage from "./pages/AssessmentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,11 @@ const App = () => (
             <Route path="/upload" element={
               <ProtectedRoute>
                 <UploadPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/assessment" element={
+              <ProtectedRoute>
+                <AssessmentPage />
               </ProtectedRoute>
             } />
             <Route path="/verify" element={
