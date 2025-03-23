@@ -14,8 +14,12 @@ pip install -r requirements.txt
 - Or set it as an environment variable:
 ```bash
 export GEMINI_API_KEY="your-api-key"
-```
 
+
+genai.configure(api_key="AIzaSyDxF7VPex-rUHaSGRa9KdRnj0NqxWH9oCo")
+model = genai.GenerativeModel('gemini-2.0-flash') 
+```
+using in # Configure Gemini API# Configure Gemini API
 ## Running the API
 
 Start the server:
