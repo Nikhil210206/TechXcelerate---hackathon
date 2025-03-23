@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,6 +15,19 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 
 const UploadArea = () => {
   const navigate = useNavigate();
+=======
+import React, { useState, useRef } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, X, CheckCircle, FileText, Upload } from 'lucide-react';
+
+interface UploadAreaProps {
+  onComplete?: () => void;
+}
+
+const UploadArea = ({ onComplete }: UploadAreaProps) => {
+  const [isDragging, setIsDragging] = useState(false);
+>>>>>>> 1ed424cdefdab67eb97c36e86ac7e3092a196c4c
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [analysis, setAnalysis] = useState<{ score: number; feedback: string } | null>(null);
@@ -208,6 +222,14 @@ const UploadArea = () => {
     navigate('/verify');
   };
   
+  const handleContinue = () => {
+    if (onComplete) {
+      onComplete();
+    } else {
+      window.location.href = '/verify';
+    }
+  };
+  
   return (
     <div className="max-w-2xl mx-auto">
       {!file ? (
@@ -290,20 +312,7 @@ const UploadArea = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="20" 
-                      height="20" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
+                    <CheckCircle size={20} />
                   </div>
                   <div>
                     <p className="font-medium">
@@ -319,22 +328,7 @@ const UploadArea = () => {
                   onClick={resetUpload}
                   className="text-muted-foreground hover:text-primary transition-colors p-2"
                 >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="18" 
-                    height="18" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 2v6h6"></path>
-                    <path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path>
-                    <path d="M21 22v-6h-6"></path>
-                    <path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path>
-                  </svg>
+                  <X size={18} />
                 </button>
               </div>
               
@@ -399,6 +393,7 @@ const UploadArea = () => {
               
               <div className="flex justify-center pt-4">
                 <Button 
+<<<<<<< HEAD
                   className="flex items-center gap-2"
                   onClick={handleContinue}
                 >
@@ -417,6 +412,13 @@ const UploadArea = () => {
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>
                   </svg>
+=======
+                  className="btn-primary"
+                  onClick={handleContinue}
+                >
+                  Start Technical Assessment
+                  <ArrowRight size={20} className="ml-2" />
+>>>>>>> 1ed424cdefdab67eb97c36e86ac7e3092a196c4c
                 </Button>
               </div>
             </div>

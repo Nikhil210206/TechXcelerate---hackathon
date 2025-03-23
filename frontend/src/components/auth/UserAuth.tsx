@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 export interface AuthUser {
   id: string;
@@ -23,11 +23,15 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -38,19 +42,14 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
       const user: AuthUser = {
         id: '123456',
         email,
-        name: 'Demo User'
+        name: email.split('@')[0] || 'Demo User'
       };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('auth_user', JSON.stringify(user));
       
       toast.success('Successfully logged in!');
       
       if (onAuthSuccess) {
         onAuthSuccess(user);
       }
-      
-      navigate('/dashboard');
     } catch (error) {
       toast.error('Failed to login. Please try again.');
     } finally {
@@ -60,6 +59,12 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name || !email || !password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -73,16 +78,11 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
         name
       };
       
-      // Save to localStorage for persistence
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      
       toast.success('Account created successfully!');
       
       if (onAuthSuccess) {
         onAuthSuccess(user);
       }
-      
-      navigate('/dashboard');
     } catch (error) {
       toast.error('Failed to create account. Please try again.');
     } finally {
@@ -116,6 +116,7 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -126,10 +127,16 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : 'Sign In'}
               </Button>
             </form>
           </TabsContent>
@@ -145,6 +152,7 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -156,6 +164,7 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -166,10 +175,16 @@ const UserAuth = ({ onAuthSuccess }: UserAuthProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create Account'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : 'Create Account'}
               </Button>
             </form>
           </TabsContent>

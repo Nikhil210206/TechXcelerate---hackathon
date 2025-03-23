@@ -1,15 +1,26 @@
 
 import React from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import UserAuth from '@/components/auth/UserAuth';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
 import SectionHeading from '@/components/ui/section-heading';
 
 const LoginPage = () => {
-  const { user, login } = useAuth();
+  const { user, isAuthenticated, login } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get the path they were trying to access, defaulting to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  if (user) {
+  const handleAuthSuccess = (userData: any) => {
+    login(userData);
+    // Redirect them to where they were trying to go or dashboard
+    navigate(from, { replace: true });
+  };
+
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -23,7 +34,7 @@ const LoginPage = () => {
         />
         
         <div className="max-w-md mx-auto mt-8">
-          <UserAuth onAuthSuccess={login} />
+          <UserAuth onAuthSuccess={handleAuthSuccess} />
         </div>
       </div>
     </Layout>
