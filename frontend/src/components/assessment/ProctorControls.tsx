@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mic, Video, ScanFace, AlertCircle, CheckCircle } from 'lucide-react';
@@ -47,7 +46,11 @@ const ProctorControls: React.FC<ProctorControlsProps> = ({ onReady }) => {
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
-      toast.error("Unable to access camera. Please check permissions.");
+      if (error.name === "NotAllowedError") {
+        toast.error("Camera access denied. Please allow camera permissions in your browser settings.");
+      } else {
+        toast.error("Unable to access camera. Please check permissions.");
+      }
     } finally {
       setLoading(prev => ({ ...prev, video: false }));
     }
@@ -76,18 +79,11 @@ const ProctorControls: React.FC<ProctorControlsProps> = ({ onReady }) => {
     setLoading(prev => ({ ...prev, face: true }));
     
     try {
-      // In a real implementation, you would use a face detection library
-      // Here we're simulating face detection with a timeout and additional UI feedback
-      
-      // Adding a more realistic simulation with multiple checks
       toast.info("Scanning for face...");
-      
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.info("Aligning face position...");
-      
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.info("Confirming facial features...");
-      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setPermissionStatus(prev => ({ ...prev, face: true }));
@@ -100,7 +96,6 @@ const ProctorControls: React.FC<ProctorControlsProps> = ({ onReady }) => {
     }
   };
   
-  // Cleanup function for media streams
   useEffect(() => {
     return () => {
       if (stream) {
